@@ -81,7 +81,7 @@ while getopts "f:u:t:X:pm" OPTION; do
             mode=manual
             ;;
         X)
-            method=$OPTARG
+            method=$(echo "$OPTARG" | tr '[:upper:]' '[:lower:]')
             ;;
     esac
 done
@@ -127,6 +127,7 @@ Time delay is seconds between requests
     exit
 fi
 
+# TODO: check if POST request
 if [ $mode = 'auto' ]; then
     auto_suzz
 else 
