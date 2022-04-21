@@ -2,12 +2,16 @@
 
 # suzz: Simple Fuzzer
 
+# TODO: add option for screenshot if URL exists using gowitness
+
 function auto_suzz() {
     printf "Running SUZZ\n"
     if [ $append = true ]; then
         printf "SUZZ Results\n" >> suzz.txt
+        printf "SUZZ Results\n" >> suzz_success.txt
     else
         printf "SUZZ Results\n" > suzz.txt
+        printf "SUZZ Results\n" > suzz_success.txt
     fi
     echo "Started at " >> suzz.txt
     date >> suzz.txt
@@ -21,15 +25,16 @@ function auto_suzz() {
         printf "\n\n----- $url -----\n" >> suzz.txt
         res=$(curl -s --head $url)
         if [ -z "$res" ]; then
-            printf "No Results!" >> suzz.txt
+            printf "No Results!\n" >> suzz.txt
         else
             printf "$res" >> suzz.txt
+            printf "$url\n" >> suzz_success.txt
         fi
 
         sleep $delay
     done < $wordfile
 
-    echo "Completed at " >> suzz.txt
+    printf "\nCompleted at " >> suzz.txt
     date >> suzz.txt
 
     if [ $print_result = true ]; then
