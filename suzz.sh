@@ -2,10 +2,48 @@
 
 # suzz: Simple Fuzzer
 
-# TODO: add option for screenshot if URL exists using gowitness
+function suzz_post() {
+    printf "\nEnter POST options:\n"
+    read post_options
+    printf "\nEnter any custom headers:\n"
+    read cust_headers
+
+    while read line
+    do
+
+        url=$(echo $domain | sed s/suzz/$line/g)
+
+        if [[ ! -z $post_options ]]; then
+            post_options=$(echo $post_options | sed s/suzz/$line/g)
+        fi
+
+        if [[ ! -z $cust_headers ]]; then
+            cust_headers=$(echo $cust_headers | sed s/suzz/$line/g)
+        fi
+
+        if [ $full_result = true ]; then
+
+            res=$(curl -X POST -H "$cust_headers" $post_options $url)
+
+            printf "$url: Result: $res\nHEADERS:$cust_headers\nOPTIONS:$post_options\n\n"
+            printf "$url: Result: $res\nHEADERS:$cust_headers\nOPTIONS:$post_options\n\n" >> suzz.txt
+
+        else
+            res=$(curl -s  -o /dev/null -w '%{http_code}\n' -X POST -H "$cust_headers" $post_options $url)
+
+            printf "$url: HTTP Status $res\nHEADERS:$cust_headers\nOPTIONS:$post_options\n\n"
+            printf "$url: HTTP Status $res\nHEADERS:$cust_headers\nOPTIONS:$post_options\n\n" >> suzz.txt
+        fi
+
+    done < $wordfile
+}
 
 function auto_suzz() {
     printf "Running SUZZ\n"
+    if [ $method = 'post' ]; then
+        suzz_post
+        exit 1
+    fi
     if [ $append = true ]; then
         printf "SUZZ Results\n" >> suzz.txt
         printf "SUZZ Results\n" >> suzz_success.txt
@@ -21,14 +59,16 @@ function auto_suzz() {
         if [ -z "$url" ]; then
             continue
         fi
-        printf "\n\nChecking URL: $url\n"
         printf "\n\n----- $url -----\n" >> suzz.txt
         res=$(curl -s --head $url)
         if [ -z "$res" ]; then
+            printf "$url: No Response\n"
             printf "No Results!\n" >> suzz.txt
         else
             printf "$res" >> suzz.txt
             printf "$url\n" >> suzz_success.txt
+            code=$(echo $res | awk -F ' ' '{print $2}')
+            printf "\e[0;32m$url: HTTP Code: $code\e[0m\n"
         fi
 
         sleep $delay
@@ -41,7 +81,7 @@ function auto_suzz() {
         printf "Printing results...\n\n\n"
         cat suzz.txt
     else 
-        printf "Suzz finished, check suzz.txt for results\n"
+        printf "\nSuzz finished, check suzz.txt for results\n"
     fi
 }
 
@@ -64,11 +104,12 @@ function manual_suzz() {
 # Global base variables
 delay=1.5
 print_result=false
-mode=auto
+mode='auto'
 append=false
-method="GET"
+method='get'
+full_result=false
 
-while getopts "f:u:t:X:pm" OPTION; do
+while getopts "f:u:t:X:pmr" OPTION; do
     case $OPTION in
         f)
             wordfile=$OPTARG
@@ -83,10 +124,13 @@ while getopts "f:u:t:X:pm" OPTION; do
             print_result=true
             ;;
         m)
-            mode=manual
+            mode='manual'
             ;;
         X)
-            method=$(echo "$OPTARG" | tr '[:upper:]' '[:lower:]')
+            method='post'
+            ;;
+        r)
+            full_result=true
             ;;
     esac
 done
@@ -125,14 +169,25 @@ EXAMPLE:
 OPTIONAL:
 -p Prints results on screen results are also saved to suzz.txt
 -m Switches mode to manual domain input mode (if using -m then -u can be omitted)
+-X Switches to POST request
+-r Used with -X to print full response of POST
 
 INFO:
 Time delay is seconds between requests
+
+POST Requests:
+Script will ask for POST options enter something like:
+-d \"name=dan&age=999\"
+Script will ask for your headers as well:
+Content-Type:application/json
+
+URL, POST options, and headers are searched for suzz and replaced with word file entry.
+
+
 "
     exit
 fi
 
-# TODO: check if POST request
 if [ $mode = 'auto' ]; then
     auto_suzz
 else 
