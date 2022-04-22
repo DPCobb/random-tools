@@ -24,6 +24,16 @@ function nmap_scan() {
     printf "\n\n"
     menu
 }
+function nmap_fprint() {
+    printf "\n\n----- nmap fingerprint-----\n"
+    printf "Enter IP\n"
+    read ip
+    printf "\nReport For: $ip\n"
+
+    nmap $ip -sV
+    printf "\n\n"
+    menu
+}
 
 function nslookup_scan() {
     printf "\n\n----- nslookup -----\n"
@@ -93,6 +103,7 @@ function menu() {
 [5] Reverse whois
 [6] Get certificate information
 [7] Run gobuster
+[8] nmap fingerprint
 [q] Quit
 
 Enter your choice...\n"
@@ -126,6 +137,9 @@ Enter your choice...\n"
                     ;;
                 7)
                     gobuster_tool
+                    ;;
+                8)
+                    nmap_fprint
                     ;;
             esac
         fi
